@@ -20,5 +20,7 @@ Currently the plugin tracks the following stats:
 * Health per survivor (real health + temp health)
 * Total number of health items (medkits, pills, adrenaline)
 * Witch and tank spawn flows
+* Round duration
+* Real damage taken (if Damage Bonus is active)
 
 The plugin also makes sure that `l4d_ready_enabled` is true and `sv_cheats` is disabled since that should filter out any non-competitive results if the plugin happens to be running.
