@@ -5,6 +5,7 @@
 #include <l4d2_direct>
 #include <socket>
 #include <left4downtown>
+#include "damage_bonus"
 
 #define ENDCHECKDELAY 2.0
 #define BUFFERSIZE 512
@@ -24,6 +25,8 @@ new String:mapName[64];
 new Handle:gSocket;
 new bossFlow[2] = { -2, ... };
 new Float:roundTime;
+new roundDamage;
+new bool:damageBonusAvailable;
 
 /* cvars */
 new Handle:hVsBossBuffer;
@@ -31,6 +34,12 @@ new Handle:hPainPillDecayRate;
 new Handle:hReadyEnabled;
 new Handle:hCfgName;
 new Handle:hCheats;
+
+public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
+{
+	MarkNativeAsOptional("DamageBonus_GetRoundDamage");
+	return APLRes_Success;
+}
 
 public OnPluginStart()
 {
@@ -46,6 +55,10 @@ public OnPluginStart()
 	gSocket = SocketCreate(SOCKET_UDP, OnSocketError);
 	SocketConnect(gSocket, OnSocketConnect, OnSocketRecv, OnSocketDisconnect, "bonerbox.canadarox.com", 55555);
 }
+
+public OnAllPluginsLoaded()	damageBonusAvailable = LibraryExists("l4d2_damagebonus");
+public OnLibraryRemoved(const String:name[])	if (StrEqual(name, "l4d2_damagebonus"))	damageBonusAvailable = false;
+public OnLibraryAdded(const String:name[])		if (StrEqual(name, "l4d2_damagebonus"))	damageBonusAvailable = true;
 
 public OnMapStart()
 {
@@ -117,6 +130,8 @@ PrepMessage(String:message[BUFFERSIZE])
 
 	roundTime = GetTickedTime() - roundTime;
 	
+	roundDamage = damageBonusAvailable ? DamageBonus_GetRoundDamage() : -1;
+
 	new offset;
 	offset += WriteToStringBuffer(message[offset], VERSION_INT); // 1 integer
 	offset += 1 + strcopy(message[offset], sizeof(message) - offset, mapName); // string
@@ -128,6 +143,7 @@ PrepMessage(String:message[BUFFERSIZE])
 	offset += WriteArrayToStringBuffer(message[offset], itemCount, sizeof(itemCount)); // 3 integers
 	offset += WriteArrayToStringBuffer(message[offset], bossFlow, sizeof(bossFlow)); // 2 integers
 	offset += WriteToStringBuffer(message[offset], RoundToNearest(roundTime)); // 1 integer
+	offset += WriteToStringBuffer(message[offset], roundDamage); // 1 integer
 
 	return offset;
 }
