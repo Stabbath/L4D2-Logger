@@ -5,12 +5,14 @@
 #include <l4d2_direct>
 #include <socket>
 #include <left4downtown>
+#undef REQUIRE_PLUGIN
 #include "damage_bonus"
+#include "pause"
 
 #define ENDCHECKDELAY 2.0
 #define BUFFERSIZE 512
-#define VERSION_INT 5
-#define VERSION_STR "5"
+#define VERSION_INT 6
+#define VERSION_STR "6"
 
 public Plugin:myinfo =
 {
@@ -25,6 +27,7 @@ new String:mapName[64];
 new Handle:gSocket;
 new bossFlow[2] = { -2, ... };
 new Float:roundTime;
+new Float:pauseTime;
 new roundDamage;
 new bool:damageBonusAvailable;
 
@@ -56,7 +59,7 @@ public OnPluginStart()
 	SocketConnect(gSocket, OnSocketConnect, OnSocketRecv, OnSocketDisconnect, "bonerbox.canadarox.com", 55555);
 }
 
-public OnAllPluginsLoaded()	damageBonusAvailable = LibraryExists("l4d2_damagebonus");
+public OnAllPluginsLoaded()						damageBonusAvailable = LibraryExists("l4d2_damagebonus");
 public OnLibraryRemoved(const String:name[])	if (StrEqual(name, "l4d2_damagebonus"))	damageBonusAvailable = false;
 public OnLibraryAdded(const String:name[])		if (StrEqual(name, "l4d2_damagebonus"))	damageBonusAvailable = true;
 
@@ -83,6 +86,16 @@ public OnSocketDisconnect(Handle:socket, any:arg) { }
 public Action:L4D_OnFirstSurvivorLeftSafeArea(client)
 {
 	roundTime = GetTickedTime();
+}
+
+public OnPause()
+{
+	pauseTime = GetTickedTime();
+}
+
+public OnUnpause()
+{
+	roundTime -= (GetTickedTime() - pauseTime);
 }
 
 public RoundStart_Event(Handle:event, const String:name[], bool:dontBroadcas)
